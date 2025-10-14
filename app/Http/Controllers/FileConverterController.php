@@ -70,4 +70,35 @@ class FileConverterController extends Controller
             'Content-Type' => 'application/pdf',
         ]);
     }
+
+    public function showLastConverted()
+    {
+        $pdfPath = storage_path('app/public/converted.pdf');
+        $docxPath = storage_path('app/public/converted.docx');
+
+        $pdfExists = file_exists($pdfPath);
+        $docxExists = file_exists($docxPath);
+
+        if (!$pdfExists && !$docxExists) {
+            return redirect()->route('converter')->with('error', 'No converted files available. Please convert a file first.');
+        }
+
+        if ($pdfExists && !$docxExists) {
+            return response()->download($pdfPath, 'converted.pdf');
+        }
+
+        if ($docxExists && !$pdfExists) {
+            return response()->download($docxPath, 'converted.docx');
+        }
+
+        // Both exist: choose the most recently modified
+        $pdfMTime = filemtime($pdfPath);
+        $docxMTime = filemtime($docxPath);
+
+        if ($pdfMTime >= $docxMTime) {
+            return response()->download($pdfPath, 'converted.pdf');
+        }
+
+        return response()->download($docxPath, 'converted.docx');
+    }
 }

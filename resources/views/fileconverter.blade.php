@@ -70,13 +70,19 @@
 
         .error { color: #fecaca; background: rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); padding:10px 12px; border-radius:10px; margin-bottom:12px; }
         .meta { color: var(--muted); font-size:13px; margin-top:8px; }
+        .progress { height: 6px; background: rgba(99,102,241,0.2); border-radius: 999px; overflow: hidden; margin-top: 10px; display:none; }
+        .bar { height: 100%; width: 0%; background: linear-gradient(135deg, var(--primary), var(--primary-600)); transition: width 0.2s ease; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="nav">
             <a class="brand" href="/"><span class="logo"><i class="fas fa-file-export"></i></span> <span>File Converter</span></a>
-            <span class="pill"><i class="fas fa-shield-alt"></i> Server-side</span>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span class="pill" id="userPill" title="User" style="display:none;"><i class="fas fa-user"></i> <span id="userName"></span></span>
+                <a href="/login" id="loginBtn" class="btn btn-primary" style="display:none; padding:8px 12px;"><i class="fas fa-sign-in-alt"></i> Login</a>
+                <button id="logoutBtn" class="btn btn-secondary" style="display:none; padding:8px 12px;"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
         </div>
 
         <section class="hero">
@@ -89,36 +95,88 @@
         @endif
 
         <section class="grid">
+            <article class="card" style="grid-column: span 12; display:none;" id="guestBanner">
+                <p style="margin:0;">You are viewing as <strong>Guest</strong>. Please <a href="/login" class="link-inline">login</a> to enable file conversions.</p>
+            </article>
             <article class="card">
                 <h3><i class="fas fa-file-word"></i> Word (.doc/.docx) → PDF</h3>
                 <p>Select a Word file and convert it to a downloadable PDF.</p>
-                <form class="form-row" action="{{ route('convert.word.to.pdf') }}" method="POST" enctype="multipart/form-data">
+                <form class="form-row" id="formWordToPdf" action="{{ route('convert.word.to.pdf') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <input type="file" name="word_file" accept=".doc,.docx" required>
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-file-pdf"></i> Convert to PDF</button>
+                    <button type="submit" class="btn btn-primary" id="btnWordToPdf"><i class="fas fa-file-pdf"></i> Convert to PDF</button>
                 </form>
+                <div class="progress" id="progWord"><div class="bar" id="barWord"></div></div>
                 <div class="meta"><i class="fas fa-info-circle"></i> Output path: storage/app/public/converted.pdf</div>
             </article>
 
             <article class="card">
                 <h3><i class="fas fa-file-pdf"></i> PDF → Word (.docx)</h3>
                 <p>Extract text from a PDF and create a new Word document.</p>
-                <form class="form-row" action="{{ route('convert.pdf.to.word') }}" method="POST" enctype="multipart/form-data">
+                <form class="form-row" id="formPdfToWord" action="{{ route('convert.pdf.to.word') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <input type="file" name="pdf_file" accept=".pdf" required>
-                    <button type="submit" class="btn btn-success"><i class="fas fa-file-word"></i> Convert to Word</button>
+                    <button type="submit" class="btn btn-success" id="btnPdfToWord"><i class="fas fa-file-word"></i> Convert to Word</button>
                 </form>
+                <div class="progress" id="progPdf"><div class="bar" id="barPdf"></div></div>
                 <div class="meta"><i class="fas fa-info-circle"></i> Output path: storage/app/public/converted.docx</div>
             </article>
 
             <article class="card" style="grid-column: span 12;">
-                <h3><i class="fas fa-download"></i> Download Last Converted PDF</h3>
-                <p>Download the most recently converted PDF file if available.</p>
-                <form class="form-row" action="{{ route('show.pdf') }}" method="GET">
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-download"></i> Download PDF</button>
+                <h3><i class="fas fa-download"></i> Download the Last Converted File</h3>
+                <p>Downloads the most recent file you converted (PDF or DOCX).</p>
+                <form class="form-row" action="{{ route('download.last') }}" method="GET">
+                    <button type="submit" class="btn btn-primary" id="btnDownload"><i class="fas fa-download"></i> Download File</button>
                 </form>
             </article>
         </section>
     </div>
+    <script>
+        (function(){
+            const token = localStorage.getItem('api_token');
+            const banner = document.getElementById('guestBanner');
+            const buttons = [document.getElementById('btnWordToPdf'), document.getElementById('btnPdfToWord'), document.getElementById('btnDownload')];
+            const nameEl = document.getElementById('userName');
+            const userPill = document.getElementById('userPill');
+            const loginBtn = document.getElementById('loginBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            if(!token){
+                banner.style.display = 'block';
+                buttons.forEach(b => { if(b){ b.disabled = true; b.style.opacity = 0.6; b.style.cursor = 'not-allowed'; }});
+                loginBtn && (loginBtn.style.display = 'inline-flex');
+            } else {
+                userPill.style.display = 'inline-flex';
+                logoutBtn.style.display = 'inline-flex';
+                nameEl.textContent = 'Loading…';
+                fetch('/api/user', { headers: { 'Authorization': 'Bearer ' + token } })
+                    .then(async (res) => { if(!res.ok) throw new Error('Unauthorized'); return res.json(); })
+                    .then((user) => { if(user && user.name){ nameEl.textContent = user.name; localStorage.setItem('user', JSON.stringify(user)); } })
+                    .catch(() => { localStorage.removeItem('api_token'); localStorage.removeItem('user'); userPill.style.display='none'; logoutBtn.style.display='none'; loginBtn.style.display='inline-flex'; });
+            }
+            logoutBtn && logoutBtn.addEventListener('click', function(){ localStorage.removeItem('api_token'); localStorage.removeItem('user'); location.reload(); });
+            // Handle loading bar + localStorage last type
+            function handleForm(formId, barId, progId, typeKey){
+                const form = document.getElementById(formId);
+                const bar = document.getElementById(barId);
+                const prog = document.getElementById(progId);
+                if(!form) return;
+                form.addEventListener('submit', function(){
+                    if(!token){ return; }
+                    prog.style.display = 'block';
+                    bar.style.width = '15%';
+                    let p = 15;
+                    const iv = setInterval(() => { p = Math.min(95, p + Math.random()*10); bar.style.width = p + '%'; }, 300);
+                    // allow normal submit; after download starts, store type
+                    setTimeout(() => {
+                        try { localStorage.setItem('last_converted_type', typeKey); } catch {}
+                    }, 1000);
+                    // best effort cleanup
+                    setTimeout(() => { clearInterval(iv); bar.style.width = '100%'; }, 60000);
+                });
+            }
+            handleForm('formWordToPdf', 'barWord', 'progWord', 'pdf');
+            handleForm('formPdfToWord', 'barPdf', 'progPdf', 'docx');
+        })();
+    </script>
 </body>
 </html>

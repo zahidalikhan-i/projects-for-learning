@@ -18,12 +18,15 @@ use App\Http\Controllers\TranslatorController;
 */
 
 Route::get('/', [Controller::class, 'index'])->name('dashboard');
+Route::get('/login', function () { return view('auth.login'); })->name('login');
+Route::get('/register', function () { return view('auth.register'); })->name('register');
 Route::get('/translator', [TranslatorController::class, 'index'])->name('translator');
 Route::get('/converter', function () 
 { return view('fileconverter');})->name('converter');
 Route::post('/convert-word-to-pdf', [FileConverterController::class, 'convertWordToPdf'])->name('convert.word.to.pdf');
 Route::post('/convert-pdf-to-word', [FileConverterController::class, 'convertPdfToWord'])->name('convert.pdf.to.word');
 Route::get('/show-pdf', [FileConverterController::class, 'showPdf'])->name('show.pdf');
+Route::get('/download-last', [FileConverterController::class, 'showLastConverted'])->name('download.last');
 
 // Comment out catch-all route to avoid conflicts
 // Route::get('/{any?}', function () {

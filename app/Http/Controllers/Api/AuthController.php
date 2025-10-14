@@ -21,7 +21,7 @@ class AuthController extends Controller
             if (Auth::attempt($request->only('email', 'password'))) {
                 /** @var User $user */
                 $user = Auth::user();
-                $token = $user->createToken('API Token')->accessToken;
+                $token = $user->createToken('API Token')->plainTextToken;
 
                 if (config('auth.must_verify_email') && !$user->hasVerifiedEmail()) {
                     return response([

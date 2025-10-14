@@ -43,7 +43,13 @@
     <div class="container">
       <div class="nav">
         <a class="brand" href="/"><span class="logo"><i class="fas fa-language"></i></span><span>Language Translator</span></a>
-        <span class="pill"><i class="fas fa-bolt"></i> Client-side</span>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="pill" id="userPill" title="User" style="display:none;"><i class="fas fa-user"></i> <span id="userName"></span></span>
+          <a href="/login" id="loginBtn" class="btn" style="display:none; padding:8px 12px; background:linear-gradient(135deg, var(--primary), var(--primary-600)); border:1px solid rgba(255,255,255,0.08); color:#fff; font-weight:600; border-radius:10px; text-decoration:none;"><i class="fas fa-sign-in-alt"></i> Login</a>
+          <button id="logoutBtn" class="btn" style="display:none; padding:8px 12px; background:rgba(255,255,255,0.06); border:1px solid var(--card-border); color:#fff; font-weight:600; border-radius:10px;">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </button>
+        </div>
       </div>
 
       <section class="hero">
@@ -52,6 +58,7 @@
       </section>
 
       <div class="panel">
+        <div class="error" id="guestBanner" style="display:none; color:#fecaca; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); padding:10px 12px; border-radius:10px; margin-bottom:12px;">You are viewing as <strong>Guest</strong>. Please <a href="/login" style="color:#93c5fd;">login</a> to enable translation actions.</div>
         <div class="text-input">
           <textarea spellcheck="false" class="from-text" placeholder="Enter text"></textarea>
           <textarea spellcheck="false" readonly disabled class="to-text" placeholder="Translation"></textarea>
@@ -73,7 +80,7 @@
             </div>
           </li>
         </ul>
-        <button class="translate"><i class="fas fa-play"></i> Translate Text</button>
+        <button class="translate" id="btnTranslate"><i class="fas fa-play"></i> Translate Text</button>
       </div>
 
       <div class="love">
@@ -84,5 +91,30 @@
 
     <script src="{{ asset('js/countries.js') }}"></script>
     <script src="{{ asset('js/script.js') }}"></script>
+    <script>
+      (function(){
+        const token = localStorage.getItem('api_token');
+        const banner = document.getElementById('guestBanner');
+        const translate = document.getElementById('btnTranslate');
+        const nameEl = document.getElementById('userName');
+        const userPill = document.getElementById('userPill');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        if(!token){
+          if(banner) banner.style.display = 'block';
+          if(translate){ translate.disabled = true; translate.style.opacity = 0.6; translate.style.cursor = 'not-allowed'; }
+          loginBtn && (loginBtn.style.display = 'inline-flex');
+        } else {
+          userPill.style.display = 'inline-flex';
+          logoutBtn.style.display = 'inline-flex';
+          nameEl.textContent = 'Loading…';
+          fetch('/api/user', { headers: { 'Authorization': 'Bearer ' + token } })
+            .then(async (res) => { if(!res.ok) throw new Error('Unauthorized'); return res.json(); })
+            .then((user) => { if(user && user.name){ nameEl.textContent = user.name; localStorage.setItem('user', JSON.stringify(user)); } })
+            .catch(() => { localStorage.removeItem('api_token'); localStorage.removeItem('user'); userPill.style.display='none'; logoutBtn.style.display='none'; loginBtn.style.display='inline-flex'; });
+        }
+        logoutBtn && logoutBtn.addEventListener('click', function(){ localStorage.removeItem('api_token'); localStorage.removeItem('user'); location.reload(); });
+      })();
+    </script>
   </body>
 </html>

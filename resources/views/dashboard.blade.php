@@ -178,7 +178,10 @@
                 <span class="logo"><i class="fas fa-tools"></i></span>
                 <span>Projects for Learning</span>
             </a>
-            <span class="pill"><i class="fas fa-code"></i> Laravel 8</span>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span class="pill" id="userPill" title="Authenticated user" style="display:none;"><i class="fas fa-user"></i> <span id="userName"></span></span>
+                <button id="logoutBtn" class="btn btn-secondary" style="padding:8px 12px; display:none;"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
         </div>
 
         <section class="hero">
@@ -232,5 +235,61 @@
             <div style="margin-top:6px;">Built with ❤️ using Laravel and modern PHP libraries.</div>
         </div>
     </div>
+    <script>
+        (function(){
+            const token = localStorage.getItem('api_token');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const nameEl = document.getElementById('userName');
+            const userPill = document.getElementById('userPill');
+
+            // Allow guests to view. We'll toggle UI based on token presence.
+
+            // Try to hydrate user from localStorage first
+            try {
+                const cachedUser = JSON.parse(localStorage.getItem('user') || 'null');
+                if(cachedUser && cachedUser.name){ nameEl.textContent = cachedUser.name; }
+            } catch {}
+
+            // Validate token with backend and refresh user data
+            if(token){
+                // Immediately show user controls while we validate the token
+                userPill.style.display = 'inline-flex';
+                logoutBtn.style.display = 'inline-flex';
+                nameEl.textContent = 'Loading…';
+            fetch('/api/user', { headers: { 'Authorization': 'Bearer ' + token } })
+                .then(async (res) => {
+                    if(!res.ok) throw new Error('Unauthorized');
+                    return res.json();
+                })
+                .then((user) => {
+                    if(user && user.name){
+                        nameEl.textContent = user.name;
+                        localStorage.setItem('user', JSON.stringify(user));
+                        // already visible
+                    }
+                })
+                .catch(() => {
+                    localStorage.removeItem('api_token');
+                    localStorage.removeItem('user');
+                    // remain as guest
+                    nameEl.textContent = 'Guest';
+                    userPill.style.display = 'inline-flex';
+                    logoutBtn.style.display = 'none';
+                });
+            }
+            else {
+                // No token: show Guest indicator only
+                nameEl.textContent = 'Guest';
+                userPill.style.display = 'inline-flex';
+            }
+
+            // Logout clears token and redirects
+            logoutBtn.addEventListener('click', function(){
+                localStorage.removeItem('api_token');
+                localStorage.removeItem('user');
+                location.reload();
+            });
+        })();
+    </script>
 </body>
 </html>
