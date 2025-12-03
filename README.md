@@ -1,7 +1,9 @@
-## Laravel Project: Translator and File Converter
+# Laravel Project: Translator and File Converter
 
-### Overview
+## Overview
+
 This Laravel 8 application provides:
+
 - **Language Translator UI**: A client-side page to translate text (uses static JS assets).
 - **File Converter**:
   - Convert **Word (.doc/.docx)** to **PDF**
@@ -9,6 +11,7 @@ This Laravel 8 application provides:
 - **Auth APIs**: Register, login, password reset, and email verification endpoints.
 
 ### Tech Stack
+
 - **Backend**: Laravel 8.x (PHP ^7.3 | ^8.0)
 - **Packages** (selected):
   - `phpoffice/phpword` (read/write .docx)
@@ -16,7 +19,8 @@ This Laravel 8 application provides:
   - `spatie/pdf-to-text` (extract text from PDFs)
   - `laravel/sanctum` (token-based auth)
 
-### Web Routes
+## Web Routes
+
 - `/` → dashboard view
 - `/translator` → translator UI
 - `/converter` → file converter view
@@ -24,7 +28,8 @@ This Laravel 8 application provides:
 - `POST /convert-pdf-to-word` → PDF → Word (.docx)
 - `/show-pdf` → download last converted PDF
 
-### API Endpoints
+## API Endpoints
+
 - `POST /api/register`
 - `POST /api/login`
 - `POST /api/forgot`
@@ -33,40 +38,51 @@ This Laravel 8 application provides:
 - `GET /api/email/verify/{id}`
 - Authenticated: `GET /api/user`
 
-### Key Controllers
+## Key Controllers
+
 - `app/Http/Controllers/Controller.php` → returns `dashboard` view
 - `app/Http/Controllers/TranslatorController.php` → returns `translator` view
 - `app/Http/Controllers/FileConverterController.php` → Word↔PDF conversion and file download
 
-### Views and Assets
+## Views and Assets
+
 - Views: `resources/views/dashboard.blade.php`, `translator.blade.php`, `fileconverter.blade.php`
 - Public assets:
   - CSS: `public/css/style.css`
   - JS: `public/js/countries.js`, `public/js/script.js`
 
-### Converted Files
+## Converted Files
+
 - Saved to: `storage/app/public/converted.pdf` and `storage/app/public/converted.docx`
 
-### Setup
+## Setup
+
 1. Install PHP dependencies:
+
    ```bash
    composer install
    ```
+
 2. Create environment file and app key (first install usually auto-copies `.env`):
+
    ```bash
    copy .env.example .env
    php artisan key:generate
    ```
+
 3. Configure database in `.env` (required for auth flows), then run migrations:
+
    ```bash
    php artisan migrate
    ```
 
-### Run
+## Run
+
 ```bash
 php artisan serve
 ```
 
-### Notes
+## Notes
+
 - The translator page uses static JS and does not require a backend key in this repo.
 - If you modify assets under `resources/*`, configure and build via your preferred bundler. Current public assets are already present under `public/`.
